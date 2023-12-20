@@ -1,12 +1,16 @@
 package antonia.alarcon.android_ejemploretrofit;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -49,6 +53,59 @@ public class MainActivity extends AppCompatActivity {
         binding.fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                insertarAlbum().show();
+            }
+        });
+    }
+
+    private AlertDialog insertarAlbum(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+        builder.setTitle("Crear Album");
+        builder.setCancelable(false);
+
+        View albumView = LayoutInflater.from(this).inflate(R.layout.album_view_model, null);
+        EditText txtUserId = albumView.findViewById(R.id.txtUserIdAlbumViewModel);
+        EditText txtTitle = albumView.findViewById(R.id.txtTituloAlbumViewModel);
+        builder.setView(albumView);
+        
+        builder.setNegativeButton("Cancelar",null);
+        builder.setPositiveButton("Insertar", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (!txtUserId.getText().toString().isEmpty() && !txtTitle.getText().toString().isEmpty()){
+                    Album a = new Album();
+                    a.setUserId(Integer.parseInt(txtUserId.getText().toString()));
+                    a.setTitulo(txtTitle.getText().toString());
+                    doPostAlbum(a);
+                    
+                }    
+            }
+        });
+
+        return builder.create();
+    }
+
+    private void doPostAlbum(Album a) {
+        Retrofit retrofit = RetrofitObject.getConexioin();
+        ApiConexiones api = retrofit.create(ApiConexiones.class);
+        
+        Call<Album> postAlbum = api.postAlbum(a);
+        
+        postAlbum.enqueue(new Callback<Album>() {
+            @Override
+            public void onResponse(Call<Album> call, Response<Album> response) {
+                if (response.code() == HttpsURLConnection.HTTP_CREATED){
+                    listaAlbums.add(0,response.body());
+                    adapter.notifyItemInserted(0);
+                }else {
+                    Toast.makeText(MainActivity.this, response.message(), Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Album> call, Throwable t) {
+                Toast.makeText(MainActivity.this, "Error", Toast.LENGTH_SHORT).show();
             }
         });
     }
